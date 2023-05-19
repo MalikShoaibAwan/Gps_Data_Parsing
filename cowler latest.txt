@@ -1,0 +1,141 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Struct for data types
+struct GPSPosition {
+    char system[10];        // GPS system identifier (e.g., 'GP' for GPS, 'GL' for GLONASS)
+    float timestamp; // Timestamp in UTC (hours, minutes, and seconds)
+    double latitude;    // Latitude in DDMM.MMMMM format
+    char latitudeDir;   // Latitude direction ('N' for north, 'S' for south)
+    double longitude;   // Longitude in DDDMM.MMMMM format
+    char longitudeDir;  // Longitude direction ('E' for east, 'W' for west)
+    int quality;        // Quality indicator
+    int satellites;     // Number of satellites used
+    double hdop;        // Horizontal dilution of precision (HDOP)
+    double altitude;    // Altitude of the GPS antenna
+    char altitudeUnit;  // Unit of altitude ('M' for meters, 'F' for feet)
+    double geoidalSep;  // Geoidal separation
+    char geoidalSepUnit;// Unit of geoidal separation 
+    double correctionAge;// Age of the correction
+    double correctionId;// Correction station ID
+    char checksum[4];   // Checksum value
+};
+
+void replaceCommaWithSpace(char* str) {
+    int i;
+    int count=0;
+    int len = strlen(str);
+    for (i = 0; i < len; i++) {
+        if (str[i] == ',' ) {
+            str[i] = ' ';
+            ++count;
+        }
+    }
+    //printf("\n%d",count);
+}
+
+/*char calculateChecksum(const char* message) {
+    int i;
+    char checksum = 0;
+    
+    // XOR each character in the message
+    for (i = 1; i < strlen(message)-4; i++) {
+       
+            checksum ^= message[i];
+        
+    }
+    printf("%02X",checksum);
+    return checksum;
+}*/
+
+int calc_NMEA_Checksum(char *buf, int cnt)
+{
+    char Character;
+    int Checksum = 0;
+    int i;  // loop counter
+
+    for (i = 0; i < cnt; ++i)
+    {
+        Character = buf[i];
+        switch (Character)
+        {
+            case '$':
+                // Ignore the dollar sign
+                break;
+            case '*':
+                // Stop processing before the asterisk
+                i = cnt;
+                continue;
+            default:
+                // Is this the first value for the checksum?
+                if (Checksum == 0)
+                {
+                    // Yes. Set the checksum to the value
+                    Checksum = Character;
+                }
+                else
+                {
+                    // No. XOR the checksum with this character's value
+                    Checksum = Checksum ^ Character;
+                }
+                break;
+        }
+    }
+
+    // Return the checksum
+    return Checksum;
+}
+
+int main() {
+    char str[] = "$GPGGA,181908.00,3404.7041778,N,07044.3966270,W,4,13,1.00,495.144,M,29.200,M,0.10,0000,*73";
+    
+    char checksumcal = calc_NMEA_Checksum(str,strlen(str));
+     //printf("Checksumcal: %s\n", checksumcal);
+
+    printf("Checksumcal: %02X\n", checksumcal);
+     
+
+    replaceCommaWithSpace(str);
+    
+    struct GPSPosition position;
+    
+    /*int ret = sscanf(str, "%s %f %lf %c %lf %c %d %d %lf %lf %c %lf %c %lf %f %s", position.system, &position.timestamp, &position.latitude, &position.latitudeDir, &position.longitude, &position.longitudeDir, &position.quality, &position.satellites,
+    &position.hdop, &position.altitude, &position.altitudeUnit,
+    &position.geoidalSep,
+    &position.geoidalSepUnit, &position.correctionAge,
+    &position.correctionId, &position.checksum, position.checksum);
+    memmove(position.checksum, position.checksum + 1, strlen(position.checksum));*/
+    int ret = sscanf(str, "%s %f %lf %c %lf %c %d %d %lf %lf %c %lf %c %lf %f %3s", position.system, &position.timestamp, &position.latitude, &position.latitudeDir, &position.longitude, &position.longitudeDir, &position.quality, &position.satellites,
+    &position.hdop, &position.altitude, &position.altitudeUnit,
+    &position.geoidalSep,
+    &position.geoidalSepUnit, &position.correctionAge,
+    &position.correctionId, position.checksum);
+
+
+     printf("%d\n", ret);
+
+        printf("System: %s\n", position.system);
+        printf("Timestamp: %s\n", position.timestamp);
+        printf("Latitude: %.7f %c\n", position.latitude, position.latitudeDir);
+        printf("Longitude: %.7f %c\n", position.longitude, position.longitudeDir);
+        printf("Quality: %d\n", position.quality);
+        printf("Satellites: %d\n", position.satellites);
+        printf("HDOP: %.2f\n", position.hdop);
+        printf("Altitude: %.3f %c\n", position.altitude, position.altitudeUnit);
+        printf("Geoidal Separation: %.3f %c\n", position.geoidalSep, position.geoidalSepUnit);
+        printf("Correction Age: %.2f\n", position.correctionAge);
+        printf("Correction ID: %s\n", position.correctionId);
+        printf("Checksum: %s\n", position.checksum);
+    /*
+        if (strcmp(checksumcal, position.checksum) == 0)
+{
+    printf("Checksum is valid.\n");
+}
+        else
+{
+    printf("Given data is corrupted.\n");
+}*/
+
+    return 0;
+}
